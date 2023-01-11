@@ -12,10 +12,14 @@ defmodule ExTwitter do
   @impl Application
   def start(_type, _args) do
     if Application.get_env(:ex_twitter, :oauth, nil) do
-      IO.puts :stderr, "[deprecation] Using :ex_twitter in config.exs is deprecated. Use :extwitter instead."
+      IO.puts(
+        :stderr,
+        "[deprecation] Using :ex_twitter in config.exs is deprecated. Use :extwitter instead."
+      )
     end
-    ExTwitter.Proxy.initialize
-    ExTwitter.Supervisor.start_link
+
+    ExTwitter.Proxy.initialize()
+    ExTwitter.Supervisor.start_link()
   end
 
   # -------------- ExTwitter Settings -------------
@@ -293,7 +297,6 @@ defmodule ExTwitter do
   @impl Behaviour
   defdelegate update(status, options), to: ExTwitter.API.Tweets
 
-
   @doc """
   POST statuses/retweet/:id
 
@@ -345,7 +348,6 @@ defmodule ExTwitter do
   """
   @impl Behaviour
   defdelegate unretweet(id, options), to: ExTwitter.API.Tweets
-
 
   @doc """
   POST media/upload
@@ -423,7 +425,8 @@ defmodule ExTwitter do
   Unlike `update_with_media/3`, this supports the uploading of all Twitter-supported media types such as video files.
   """
   @impl Behaviour
-  defdelegate update_with_chunked_media(status, path, content_type, options), to: ExTwitter.API.Tweets
+  defdelegate update_with_chunked_media(status, path, content_type, options),
+    to: ExTwitter.API.Tweets
 
   @doc """
   Chunk upload media and return media_id.
@@ -861,7 +864,6 @@ defmodule ExTwitter do
   @impl Behaviour
   defdelegate follower_ids(id, options), to: ExTwitter.API.FriendsAndFollowers
 
-
   # GET friendships/incoming
   # https://dev.twitter.com/rest/reference/get/friendships/incoming
 
@@ -996,7 +998,7 @@ defmodule ExTwitter do
 
   https://dev.twitter.com/rest/reference/get/friendships/lookup
   """
-  @spec friends_lookup(String.t | Integer, Keyword.t) :: ExTwitter.Model.Relationship.t
+  @spec friends_lookup(String.t() | Integer, Keyword.t()) :: ExTwitter.Model.Relationship.t()
   defdelegate friends_lookup(id, options), to: ExTwitter.API.FriendsAndFollowers
 
   @doc """
@@ -1010,7 +1012,7 @@ defmodule ExTwitter do
 
   https://dev.twitter.com/rest/reference/get/friendships/lookup
   """
-  @spec friends_lookup(String.t) :: ExTwitter.Model.Relationship.t
+  @spec friends_lookup(String.t()) :: ExTwitter.Model.Relationship.t()
   defdelegate friends_lookup(id), to: ExTwitter.API.FriendsAndFollowers
 
   # -------------- Users -------------
@@ -1035,7 +1037,6 @@ defmodule ExTwitter do
 
   @impl Behaviour
   defdelegate verify_credentials(options), to: ExTwitter.API.Users
-
 
   # POST account/settings
   # https://dev.twitter.com/rest/reference/post/account/settings
@@ -1132,7 +1133,6 @@ defmodule ExTwitter do
   """
   @impl Behaviour
   defdelegate user_profile_banner(id_or_screen_name), to: ExTwitter.API.Users
-
 
   @doc """
   GET users/show
@@ -1430,7 +1430,7 @@ defmodule ExTwitter do
   https://dev.twitter.com/rest/reference/get/lists/subscribers
   """
   @impl Behaviour
-  defdelegate list_subscribers(options),              to: ExTwitter.API.Lists
+  defdelegate list_subscribers(options), to: ExTwitter.API.Lists
 
   @doc """
   GET lists/subscribers

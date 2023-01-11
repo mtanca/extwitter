@@ -51,10 +51,12 @@ defmodule ExTwitter.Proxy do
     case Integer.parse(port) do
       {integer, _binary} ->
         integer
+
       :error ->
         raise ExTwitter.Error,
           message: "Failed to parse :port for proxy as integer (port: #{port})"
     end
   end
+
   defp parse_port(port), do: port
 end

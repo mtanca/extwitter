@@ -9,8 +9,13 @@ defmodule ExTwitter.API.Search do
   def search(query, options \\ []) do
     case Keyword.fetch(options, :search_metadata) do
       {:ok, true} ->
-        params = ExTwitter.Parser.parse_request_params([q: query] ++ Keyword.drop(options, [:search_metadata]))
+        params =
+          ExTwitter.Parser.parse_request_params(
+            [q: query] ++ Keyword.drop(options, [:search_metadata])
+          )
+
         search_with_metadata(params)
+
       _ ->
         do_search(query, options)
     end

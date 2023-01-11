@@ -5,16 +5,24 @@ defmodule ExTwitter.API.Auth do
   import ExTwitter.API.Base
 
   def request_token(redirect_url \\ nil) do
-    oauth = ExTwitter.Config.get_tuples |> verify_params
+    oauth = ExTwitter.Config.get_tuples() |> verify_params
     params = if redirect_url, do: [{"oauth_callback", redirect_url}], else: []
-    {:ok, {{_, 200, _}, _headers, body}} =
-      ExTwitter.OAuth.request(:post, request_url("oauth/request_token"),
-        params, oauth[:consumer_key], oauth[:consumer_secret], "", "")
 
-    Elixir.URI.decode_query(to_string body)
-    |> Enum.map(fn {k,v} -> {String.to_atom(k), v} end)
+    {:ok, {{_, 200, _}, _headers, body}} =
+      ExTwitter.OAuth.request(
+        :post,
+        request_url("oauth/request_token"),
+        params,
+        oauth[:consumer_key],
+        oauth[:consumer_secret],
+        "",
+        ""
+      )
+
+    Elixir.URI.decode_query(to_string(body))
+    |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)
     |> Enum.into(%{})
-    |> ExTwitter.Parser.parse_request_token
+    |> ExTwitter.Parser.parse_request_token()
   end
 
   def authorize_url(oauth_token, options \\ %{}) do
@@ -30,16 +38,29 @@ defmodule ExTwitter.API.Auth do
   end
 
   def access_token(verifier, request_token) do
-    oauth = ExTwitter.Config.get_tuples |> verify_params
-    response = ExTwitter.OAuth.request(:post, request_url("oauth/access_token"),
-      [oauth_verifier: verifier], oauth[:consumer_key], oauth[:consumer_secret], request_token, nil)
+    oauth = ExTwitter.Config.get_tuples() |> verify_params
+
+    response =
+      ExTwitter.OAuth.request(
+        :post,
+        request_url("oauth/access_token"),
+        [oauth_verifier: verifier],
+        oauth[:consumer_key],
+        oauth[:consumer_secret],
+        request_token,
+        nil
+      )
+
     case response do
       {:ok, {{_, 200, _}, _headers, body}} ->
-        access_token = Elixir.URI.decode_query(to_string body)
-        |> Enum.map(fn {k,v} -> {String.to_atom(k), v} end)
-        |> Enum.into(%{})
-        |> ExTwitter.Parser.parse_access_token
+        access_token =
+          Elixir.URI.decode_query(to_string(body))
+          |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)
+          |> Enum.into(%{})
+          |> ExTwitter.Parser.parse_access_token()
+
         {:ok, access_token}
+
       {:ok, {{_, code, _}, _, _}} ->
         {:error, code}
     end

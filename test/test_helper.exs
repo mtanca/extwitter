@@ -1,4 +1,4 @@
-ExUnit.start
+ExUnit.start()
 
 defmodule TestHelper.TestStore do
   @ets_table :extwitter_teststore
@@ -8,6 +8,7 @@ defmodule TestHelper.TestStore do
     if :ets.info(@ets_table) == :undefined do
       :ets.new(@ets_table, [:set, :public, :named_table])
     end
+
     :ok
   end
 

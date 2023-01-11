@@ -19,26 +19,50 @@ defmodule ExTwitter.API.Streaming do
   def stream_sample(options \\ []) do
     {options, configs} = seperate_configs_from_options(options)
     params = ExTwitter.Parser.parse_request_params(options)
-    req = %AsyncRequest{processor: nil, method: :get, path: "1.1/statuses/sample.json", params: params, configs: configs}
+
+    req = %AsyncRequest{
+      processor: nil,
+      method: :get,
+      path: "1.1/statuses/sample.json",
+      params: params,
+      configs: configs
+    }
+
     create_stream(req, @default_stream_timeout)
   end
 
   def stream_filter(options, timeout \\ @default_stream_timeout) do
     {options, configs} = seperate_configs_from_options(options)
     params = ExTwitter.Parser.parse_request_params(options)
-    req = %AsyncRequest{processor: nil, method: :post, path: "1.1/statuses/filter.json", params: params, configs: configs}
+
+    req = %AsyncRequest{
+      processor: nil,
+      method: :post,
+      path: "1.1/statuses/filter.json",
+      params: params,
+      configs: configs
+    }
+
     create_stream(req, timeout)
   end
 
   def stream_user(options \\ [], timeout \\ @default_stream_timeout) do
     {options, configs} = seperate_configs_from_options(options)
     params = ExTwitter.Parser.parse_request_params(options)
-    req = %AsyncRequest{processor: nil, method: :get, path: "1.1/user.json", params: params, configs: configs}
+
+    req = %AsyncRequest{
+      processor: nil,
+      method: :get,
+      path: "1.1/user.json",
+      params: params,
+      configs: configs
+    }
+
     create_stream(req, timeout)
   end
 
   defp seperate_configs_from_options(options) do
-    config  = Keyword.take(options, [:receive_messages])
+    config = Keyword.take(options, [:receive_messages])
     options = Keyword.delete(options, :receive_messages)
     {options, config}
   end
@@ -50,7 +74,7 @@ defmodule ExTwitter.API.Streaming do
   def stream_control(pid, :stop, options \\ []) do
     timeout = options[:timeout] || @default_control_timeout
 
-    send pid, {:control_stop, self()}
+    send(pid, {:control_stop, self()})
 
     receive do
       :ok -> :ok
@@ -59,18 +83,27 @@ defmodule ExTwitter.API.Streaming do
     end
   end
 
-  defp spawn_async_request(req=%AsyncRequest{}) do
-    oauth = ExTwitter.Config.get_tuples |> ExTwitter.API.Base.verify_params
+  defp spawn_async_request(req = %AsyncRequest{}) do
+    oauth = ExTwitter.Config.get_tuples() |> ExTwitter.API.Base.verify_params()
+
     spawn(fn ->
-      response = ExTwitter.OAuth.request_async(
-        req.method, request_url(req.path), req.params,
-        oauth[:consumer_key], oauth[:consumer_secret], oauth[:access_token], oauth[:access_token_secret])
+      response =
+        ExTwitter.OAuth.request_async(
+          req.method,
+          request_url(req.path),
+          req.params,
+          oauth[:consumer_key],
+          oauth[:consumer_secret],
+          oauth[:access_token],
+          oauth[:access_token_secret]
+        )
 
       case response do
         {:ok, request_id} ->
           process_stream(req.processor, request_id, req.configs)
+
         {:error, reason} ->
-          send req.processor, {:error, reason}
+          send(req.processor, {:error, reason})
       end
     end)
   end
@@ -78,10 +111,10 @@ defmodule ExTwitter.API.Streaming do
   defp create_stream(req, timeout) do
     Stream.resource(
       fn -> {%{req | processor: self()}, nil} end,
-      fn({req, pid}) -> receive_next_tweet(pid, req, timeout) end,
-      fn({_req, pid}) ->
+      fn {req, pid} -> receive_next_tweet(pid, req, timeout) end,
+      fn {_req, pid} ->
         if pid != nil do
-          send pid, {:cancel, self()}
+          send(pid, {:cancel, self()})
         end
       end
     )
@@ -92,39 +125,42 @@ defmodule ExTwitter.API.Streaming do
   end
 
   defp receive_next_tweet(pid, req, timeout) do
-    max_timeout = case timeout do
-                    :infinity -> @default_stream_timeout
-                    _ -> timeout
-                  end
+    max_timeout =
+      case timeout do
+        :infinity -> @default_stream_timeout
+        _ -> timeout
+      end
+
     receive do
       {:stream, tweet} ->
         {[tweet], {req, pid}}
 
       {:control_stop, requester} ->
-        send pid, {:cancel, self()}
-        send requester, :ok
+        send(pid, {:cancel, self()})
+        send(requester, :ok)
         {:halt, {req, pid}}
 
       {:error, :socket_closed_remotely} ->
-        Logger.warn "Connection closed remotely, restarting stream"
+        Logger.warn("Connection closed remotely, restarting stream")
         receive_next_tweet(nil, req, timeout)
 
       {:error, message} ->
-        Logger.error "Error returned, stopping stream (#{inspect(message)})."
+        Logger.error("Error returned, stopping stream (#{inspect(message)}).")
         {:halt, {req, pid}}
 
       _ ->
         receive_next_tweet(pid, req, timeout)
-
     after
       max_timeout ->
-        send pid, {:cancel, self()}
+        send(pid, {:cancel, self()})
+
         case timeout do
           :infinity ->
-            Logger.debug "Tweet timeout, restarting stream."
+            Logger.debug("Tweet timeout, restarting stream.")
             receive_next_tweet(nil, req, timeout)
+
           _ ->
-            Logger.debug "Tweet timeout, stopping stream."
+            Logger.debug("Tweet timeout, stopping stream.")
             {:halt, {req, pid}}
         end
     end
@@ -136,7 +172,7 @@ defmodule ExTwitter.API.Streaming do
   def process_stream(processor, request_id, configs, acc \\ []) do
     receive do
       {:http, {request_id, :stream_start, _headers}} ->
-        send processor, :keepalive
+        send(processor, :keepalive)
         process_stream(processor, request_id, configs)
 
       {:http, {request_id, :stream, part}} ->
@@ -146,24 +182,25 @@ defmodule ExTwitter.API.Streaming do
             Enum.reverse([part | acc])
             |> Enum.join("")
             |> String.split(@crlf, trim: true)
-            |> Enum.map(& __MODULE__.parse_tweet_message(&1, configs))
-            |> Enum.filter(& !is_nil(&1))
-            |> Enum.map(& send processor, &1)
+            |> Enum.map(&__MODULE__.parse_tweet_message(&1, configs))
+            |> Enum.filter(&(!is_nil(&1)))
+            |> Enum.map(&send(processor, &1))
 
             process_stream(processor, request_id, configs, [])
+
           true ->
-            process_stream(processor, request_id, configs, [part|acc])
+            process_stream(processor, request_id, configs, [part | acc])
         end
 
       {:http, {_request_id, {:error, reason}}} ->
-        send processor, {:error, reason}
+        send(processor, {:error, reason})
 
       {:http, {_request_id, {{_http, @http_unauthorized, msg}, _headers, _body}}} ->
-        send processor, {:error, msg}
+        send(processor, {:error, msg})
 
       {:cancel, requester} ->
         :httpc.cancel_request(request_id)
-        send requester, :ok
+        send(requester, :ok)
 
       _ ->
         process_stream(processor, request_id, configs)
@@ -204,27 +241,28 @@ defmodule ExTwitter.API.Streaming do
     end
   end
 
-
   @doc false
   def parse_tweet_message(json, configs) do
     try do
       case ExTwitter.JSON.decode(json) do
         {:ok, tweet} ->
-          case parse_message_type(tweet,configs) do
-            {:msg, _}       -> {:stream, ExTwitter.Parser.parse_tweet(tweet)}
-            {:follow, _}     -> {:stream, {:follow, tweet}}
-            {:unfollow, _}  -> {:stream, {:unfollow, tweet}}
-            {:event, _}     -> {:stream, {:event, tweet}}
-            {:friends, _}   -> {:stream, {:friends, tweet}}
-            {:direct_message, _}   -> {:stream, {:direct_message, tweet}}
+          case parse_message_type(tweet, configs) do
+            {:msg, _} -> {:stream, ExTwitter.Parser.parse_tweet(tweet)}
+            {:follow, _} -> {:stream, {:follow, tweet}}
+            {:unfollow, _} -> {:stream, {:unfollow, tweet}}
+            {:event, _} -> {:stream, {:event, tweet}}
+            {:friends, _} -> {:stream, {:friends, tweet}}
+            {:direct_message, _} -> {:stream, {:direct_message, tweet}}
             {:control, msg} -> msg
-            {:unknown, _}   -> nil
+            {:unknown, _} -> nil
           end
-        {:error, error} -> {:error, {error, json}}
+
+        {:error, error} ->
+          {:error, {error, json}}
       end
     rescue
       error ->
-        IO.inspect [error: error, json: json]
+        IO.inspect(error: error, json: json)
         nil
     end
   end
@@ -238,13 +276,18 @@ defmodule ExTwitter.API.Streaming do
         {:stream, %ExTwitter.Model.Limit{track: limit.track}}
 
       %{:warning => warning} ->
-        {:stream, %ExTwitter.Model.StallWarning{
-                    code: warning.code, message: warning.message,
-                    percent_full: warning.percent_full}}
+        {:stream,
+         %ExTwitter.Model.StallWarning{
+           code: warning.code,
+           message: warning.message,
+           percent_full: warning.percent_full
+         }}
 
-      true -> nil
+      true ->
+        nil
     end
   end
+
   defp request_url("1.1/user.json" = path) do
     "https://userstream.twitter.com/#{path}"
   end

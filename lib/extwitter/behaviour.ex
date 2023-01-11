@@ -33,8 +33,10 @@ defmodule ExTwitter.Behaviour do
   @callback unretweet(integer(), Keyword.t()) :: ExTwitter.Model.Tweet.t()
   @callback update_with_media(String.t(), Keyword.t()) :: ExTwitter.Model.Tweet.t()
   @callback update_with_media(String.t(), String.t(), Keyword.t()) :: ExTwitter.Model.Tweet.t()
-  @callback update_with_chunked_media(String.t(), String.t(), String.t()) :: ExTwitter.Model.Tweet.t()
-  @callback update_with_chunked_media(String.t(), String.t(), String.t(), Keyword.t()) :: ExTwitter.Model.Tweet.t()
+  @callback update_with_chunked_media(String.t(), String.t(), String.t()) ::
+              ExTwitter.Model.Tweet.t()
+  @callback update_with_chunked_media(String.t(), String.t(), String.t(), Keyword.t()) ::
+              ExTwitter.Model.Tweet.t()
   @callback upload_media(String.t(), String.t()) :: integer()
   @callback upload_media(String.t(), String.t(), integer()) :: integer()
   @callback retweeter_ids(integer() | String.t()) :: [integer() | String.t()]
@@ -119,5 +121,6 @@ defmodule ExTwitter.Behaviour do
   @callback authorize_url(String.t(), map()) :: {:ok, String.t()} | {:error, String.t()}
   @callback authenticate_url(String.t(), map()) :: {:ok, String.t()} | {:error, String.t()}
   @callback authenticate_url(String.t()) :: {:ok, String.t()} | {:error, String.t()}
-  @callback access_token(String.t(), String.t()) :: {:ok, ExTwitter.Model.AccessToken.t()} | {:error, String.t()}
+  @callback access_token(String.t(), String.t()) ::
+              {:ok, ExTwitter.Model.AccessToken.t()} | {:error, String.t()}
 end

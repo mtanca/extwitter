@@ -22,7 +22,7 @@ defmodule ExTwitter.Mixfile do
           "vcr.delete",
           "vcr.check",
           "vcr.show"
-        ]),
+        ])
     ]
   end
 
@@ -33,7 +33,7 @@ defmodule ExTwitter.Mixfile do
   def application do
     [
       mod: {ExTwitter, []},
-      applications: [:inets, :ssl, :crypto, :logger, :oauther]
+      applications: [:inets, :ssl, :crypto, :logger, :oauther, :jason]
     ]
   end
 

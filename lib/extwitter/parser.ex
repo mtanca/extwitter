@@ -11,20 +11,27 @@ defmodule ExTwitter.Parser do
   def parse_tweet(nil), do: nil
 
   def parse_tweet(object) do
-    tweet            = struct(Model.Tweet, object)
-    user             = parse_user(tweet.user)
-    coordinates      = parse_coordinates(tweet.coordinates)
-    place            = parse_place(tweet.place)
-    entities         = parse_entities(tweet.entities)
-    ex_entities      = parse_extended_entities(tweet.extended_entities)
-    rules            = parse_rules(tweet.matching_rules)
-    quoted_status    = parse_tweet(tweet.quoted_status)
+    tweet = struct(Model.Tweet, object)
+    user = parse_user(tweet.user)
+    coordinates = parse_coordinates(tweet.coordinates)
+    place = parse_place(tweet.place)
+    entities = parse_entities(tweet.entities)
+    ex_entities = parse_extended_entities(tweet.extended_entities)
+    rules = parse_rules(tweet.matching_rules)
+    quoted_status = parse_tweet(tweet.quoted_status)
     retweeted_status = parse_tweet(tweet.retweeted_status)
+
     %{
-      tweet | user: user, coordinates: coordinates, place: place,
-      entities: entities, extended_entities: ex_entities,
-      matching_rules: rules, quoted_status: quoted_status,
-      retweeted_status: retweeted_status, raw_data: object
+      tweet
+      | user: user,
+        coordinates: coordinates,
+        place: place,
+        entities: entities,
+        extended_entities: ex_entities,
+        matching_rules: rules,
+        quoted_status: quoted_status,
+        retweeted_status: retweeted_status,
+        raw_data: object
     }
   end
 
@@ -33,8 +40,8 @@ defmodule ExTwitter.Parser do
   """
   def parse_direct_message(object) do
     direct_message = struct(Model.DirectMessage, object)
-    recipient      = parse_user(direct_message.recipient)
-    sender         = parse_user(direct_message.sender)
+    recipient = parse_user(direct_message.recipient)
+    sender = parse_user(direct_message.sender)
     %{direct_message | recipient: recipient, sender: sender}
   end
 
@@ -56,7 +63,8 @@ defmodule ExTwitter.Parser do
   @doc """
   Parse profile geo record from the API response JSON.
   """
-  @spec parse_profile_geo(map | [map] | nil) :: Model.ProfileGeo.t() | [Model.ProfileGeo.t()] | nil
+  @spec parse_profile_geo(map | [map] | nil) ::
+          Model.ProfileGeo.t() | [Model.ProfileGeo.t()] | nil
   def parse_profile_geo(nil), do: nil
 
   def parse_profile_geo(objects) when is_list(objects) do
@@ -65,8 +73,8 @@ defmodule ExTwitter.Parser do
 
   def parse_profile_geo(object) do
     profile_geo = struct(Model.ProfileGeo, object)
-      geo = parse_geo(profile_geo.geo)
-      %{profile_geo | geo: geo, raw_data: object}
+    geo = parse_geo(profile_geo.geo)
+    %{profile_geo | geo: geo, raw_data: object}
   end
 
   @doc """
@@ -75,7 +83,7 @@ defmodule ExTwitter.Parser do
   @spec parse_trend(map) :: Model.Trend.t()
   def parse_trend(object) do
     trend = struct(Model.Trend, object)
-    %{trend | query: (trend.query |> URI.decode), raw_data: object}
+    %{trend | query: trend.query |> URI.decode(), raw_data: object}
   end
 
   @doc """
@@ -98,7 +106,7 @@ defmodule ExTwitter.Parser do
     place = struct(Model.Place, object)
 
     bounding_box = parse_bounding_box(place.bounding_box)
-    con = Enum.map((place.contained_within || []), &parse_place/1)
+    con = Enum.map(place.contained_within || [], &parse_place/1)
 
     %{place | bounding_box: bounding_box, contained_within: con, raw_data: object}
   end
@@ -108,6 +116,7 @@ defmodule ExTwitter.Parser do
   """
   @spec parse_bounding_box(map | nil) :: Model.BoundingBox.t() | nil
   def parse_bounding_box(nil), do: nil
+
   def parse_bounding_box(object) do
     Model.BoundingBox |> struct(object) |> Map.put(:raw_data, object)
   end
@@ -197,8 +206,12 @@ defmodule ExTwitter.Parser do
 
   def parse_media(object) do
     media = struct(Model.Media, object)
-    sizes = media.sizes |> Stream.map(fn {key, val} -> {key, parse_size(val)} end)
-                        |> Enum.into(%{})
+
+    sizes =
+      media.sizes
+      |> Stream.map(fn {key, val} -> {key, parse_size(val)} end)
+      |> Enum.into(%{})
+
     %{media | sizes: sizes, raw_data: object}
   end
 
@@ -271,7 +284,7 @@ defmodule ExTwitter.Parser do
   """
   @spec parse_ids(map) :: [pos_integer]
   def parse_ids(object) do
-    Enum.find(object, fn({key, _value}) -> key == :ids end) |> elem(1)
+    Enum.find(object, fn {key, _value} -> key == :ids end) |> elem(1)
   end
 
   @doc """
@@ -289,8 +302,11 @@ defmodule ExTwitter.Parser do
   """
   @spec parse_users_with_cursor(map) :: Model.Cursor.t()
   def parse_users_with_cursor(object) do
-    users = object |> ExTwitter.JSON.get(:users)
-                   |> Enum.map(&ExTwitter.Parser.parse_user/1)
+    users =
+      object
+      |> ExTwitter.JSON.get(:users)
+      |> Enum.map(&ExTwitter.Parser.parse_user/1)
+
     cursor = struct(Model.Cursor, object)
     %{cursor | items: users, raw_data: object}
   end

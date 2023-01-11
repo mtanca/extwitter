@@ -7,6 +7,7 @@ defmodule ExTwitter.API.PlacesAndGeo do
 
   def geo_search(options) when is_list(options) do
     params = ExTwitter.Parser.parse_request_params(options)
+
     request(:get, "1.1/geo/search.json", params)
     |> ExTwitter.JSON.get(:result)
     |> ExTwitter.JSON.get(:places)
@@ -19,6 +20,7 @@ defmodule ExTwitter.API.PlacesAndGeo do
 
   def reverse_geocode(lat, long, options \\ []) do
     params = ExTwitter.Parser.parse_request_params([lat: lat, long: long] ++ options)
+
     request(:get, "1.1/geo/reverse_geocode.json", params)
     |> ExTwitter.JSON.get(:result)
     |> ExTwitter.JSON.get(:places)
